@@ -60,5 +60,6 @@ jobs:
           else
             echo "Feature store already exists, updating it..."
             az ml feature-store update --file ${{ inputs.featurestore_file }} \
+              --name $FEATURE_STORE_NAME
               --resource-group ${{ inputs.resource_group }}
           fi
