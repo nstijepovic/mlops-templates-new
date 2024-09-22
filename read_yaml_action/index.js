@@ -24,7 +24,6 @@ try {
     var resource_group = String(configYaml["variables"]["resource_group"]);
     var location = String(configYaml["variables"]["location"]);
     var aml_workspace = String(configYaml["variables"]["aml_workspace"]);
-    var aml_registry = String(configYaml["variables"]["aml_registry"]);
 
     var terraform_version = String(configYaml["variables"]["terraform_version"]);
     var terraform_workingdir = String(configYaml["variables"]["terraform_workingdir"]);
@@ -61,7 +60,6 @@ try {
     core.setOutput("enable_aml_computecluster",enable_aml_computecluster);
     core.setOutput("resource_group",resource_group);
     core.setOutput("aml_workspace", aml_workspace);
-    core.setOutput("aml_registry", aml_registry);
     core.setOutput("bep", batch_endpoint_name);
     core.setOutput("oep", online_endpoint_name);
     core.setOutput("terraform_version", terraform_version);

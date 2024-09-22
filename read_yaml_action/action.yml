@@ -22,8 +22,6 @@ outputs:
     description: 'The resource group the AML workspace is in'
   aml_workspace:
     description: 'The AML workspace'
-  aml_registry:
-    description: 'The AML Shared Registry'
   bep:
     description: 'The batch endpoint name'
   oep:

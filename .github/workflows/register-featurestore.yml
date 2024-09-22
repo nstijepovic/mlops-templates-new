@@ -1,4 +1,4 @@
-name: register-feature-store
+name: register-featurestore
 
 on:
   workflow_call:
@@ -9,6 +9,15 @@ on:
       resource_group:
         required: true
         type: string
+      workspace_name:
+        required: true
+        type: string
+      featurestore_name:
+        required: true
+        type: string
+      set_param:
+        required: false
+        type: string
     secrets:
       creds:
         required: true
@@ -16,7 +25,6 @@ on:
 jobs:
   register-feature-store:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -24,41 +32,27 @@ jobs:
       - name: "Az CLI login"
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.creds }}
+          creds: ${{secrets.creds}}
           enable-AzPSSession: true
 
-      - name: Upgrade Azure CLI
+      - name: Install ML extension
+        run: az extension add -n ml -y
+
+      - name: Update ML extension
+        run: az extension update -n ml
+
+      - name: Register Feature Store
         run: |
-          az upgrade --yes
+          FEATURESTORE_EXISTS=$(az ml feature-store list --workspace-name ${{ inputs.workspace_name }} -g ${{ inputs.resource_group }} -o tsv --query "[?name=='${{ inputs.featurestore_name }}'][name]" | wc -l)
 
-      - name: Install ML extension 
-        run: |
-          az extension add --upgrade --name ml --version 2.30.0
-
-    #   - name: Install yq (YAML processor)
-    #     run: |
-    #       sudo apt-get update
-    #       sudo apt-get install -y yq
-
-      - name: Create or Update Feature Store
-        run: |
-          # Extract the feature store name dynamically from the YAML file
-          FEATURE_STORE_NAME=$(yq eval '.name' ${{ inputs.featurestore_file }})
-
-          echo "Feature store name: $FEATURE_STORE_NAME"
-
-          # Check if the feature store already exists
-          FEATURE_STORE_EXISTS=$(az ml feature-store list --resource-group ${{ inputs.resource_group }} \
-            --query "[?name=='$FEATURE_STORE_NAME'] | length(@)")
-
-          echo "Feature store existence check exit status: $FEATURE_STORE_EXISTS"
-
-          if [[ "$FEATURE_STORE_EXISTS" -ne 0 ]]; then
+          if [[ FEATURESTORE_EXISTS -ne 1 ]]; then
             echo "Creating feature store..."
-            az ml feature-store create --file ${{ inputs.featurestore_file }} \
-              --resource-group ${{ inputs.resource_group }}
+            az ml feature-store create --name ${{ inputs.featurestore_name }} \
+              --set ${{ inputs.set_param }} -f ${{ github.workspace }}/${{ inputs.featurestore_file }} \
+              --workspace-name ${{ inputs.workspace_name }} -g ${{ inputs.resource_group }}
           else
-            echo "Feature store already exists, updating it..."
-            az ml feature-store update --file ${{ inputs.featurestore_file }} \
-              --resource-group ${{ inputs.resource_group }}
+            echo "Feature store already exists! Updating..."
+            az ml feature-store update --name ${{ inputs.featurestore_name }} \
+              --set ${{ inputs.set_param }} -f ${{ github.workspace }}/${{ inputs.featurestore_file }} \
+              --workspace-name ${{ inputs.workspace_name }} -g ${{ inputs.resource_group }}
           fi

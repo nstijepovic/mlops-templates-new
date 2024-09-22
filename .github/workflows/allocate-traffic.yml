@@ -32,7 +32,7 @@ jobs:
       - name: install-extension
         run: az extension add -n ml -y
       - name: update-extension
-        run: az extension add --upgrade --name ml --version 2.30.0
+        run: az extension update -n ml
       - name: allocate-traffic
         run: |
           az ml online-endpoint update --name ${{ inputs.endpoint_name }} --traffic "${{ inputs.traffic_allocation }}" \

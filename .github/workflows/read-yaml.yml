@@ -31,9 +31,6 @@ on:
       aml_workspace:
         description: "The aml_workspace to use"
         value: ${{ jobs.read-yaml.outputs.aml_workspace }}
-      aml_registry:
-        description: "The aml shared registry to use"
-        value: ${{ jobs.read-yaml.outputs.aml_registry }}
       bep:
         description: "The batch endpoint"
         value: ${{ jobs.read-yaml.outputs.bep }}
@@ -73,7 +70,6 @@ jobs:
       enable_monitoring: ${{  steps.read_action_js.outputs.enable_monitoring }}
       resource_group: ${{  steps.read_action_js.outputs.resource_group }}
       aml_workspace: ${{  steps.read_action_js.outputs.aml_workspace }}
-      aml_registry: ${{  steps.read_action_js.outputs.aml_registry }}
       bep: ${{  steps.read_action_js.outputs.bep }}
       oep: ${{  steps.read_action_js.outputs.oep }}
       terraform_version: ${{  steps.read_action_js.outputs.terraform_version }}
@@ -87,9 +83,9 @@ jobs:
       - name: Checking out repo
         uses: actions/checkout@v3
       - name: Read test
-        uses: MSFT-MLOPS-demo/mlops-templates/read_yaml_action@main
+        uses: Azure/mlops-templates/read_yaml_action@main
         id: read_action_js
         with:
           config: ${{ github.workspace }}/${{ inputs.file_name }}
       - name: Echo step output
-        run: echo "${{  steps.read_action_js.outputs.resource_group }} ${{  steps.read_action_js.outputs.aml_workspace }} ${{  steps.read_action_js.outputs.aml_registry }}"; echo "${{  steps.read_action_js.outputs.bep }}  ${{  steps.read_action_js.outputs.oep }}"; echo "${{  steps.read_action_js.outputs.terraform_version }}  ${{  steps.read_action_js.outputs.terraform_workingdir }}"; echo "${{  steps.read_action_js.outputs.terraform_st_resource_group }}  ${{  steps.read_action_js.outputs.terraform_st_storage_account }} " echo "${{  steps.read_action_js.outputs.terraform_st_container_name }}  ${{  steps.read_action_js.outputs.terraform_st_key }} "
+        run: echo "${{  steps.read_action_js.outputs.resource_group }} ${{  steps.read_action_js.outputs.aml_workspace }}"; echo "${{  steps.read_action_js.outputs.bep }}  ${{  steps.read_action_js.outputs.oep }}"; echo "${{  steps.read_action_js.outputs.terraform_version }}  ${{  steps.read_action_js.outputs.terraform_workingdir }}"; echo "${{  steps.read_action_js.outputs.terraform_st_resource_group }}  ${{  steps.read_action_js.outputs.terraform_st_storage_account }} " echo "${{  steps.read_action_js.outputs.terraform_st_container_name }}  ${{  steps.read_action_js.outputs.terraform_st_key }} "
