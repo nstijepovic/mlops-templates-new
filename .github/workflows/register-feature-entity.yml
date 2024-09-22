@@ -1,0 +1,74 @@
+name: register-feature-entity
+
+on:
+  workflow_call:
+    inputs:
+      feature_entity_file:
+        required: true
+        type: string
+      resource_group:
+        required: true
+        type: string
+      featurestore_name:
+        required: true
+        type: string
+    secrets:
+      creds:
+        required: true
+
+jobs:
+  register-feature-entity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: "Az CLI login"
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.creds }}
+          enable-AzPSSession: true
+
+      - name: Upgrade Azure CLI
+        run: |
+          az upgrade --yes
+
+      - name: Install ML extension
+        run: |
+          az extension add --upgrade --name ml --version 2.30.0
+
+    #   - name: Install yq (YAML processor)
+    #     run: |
+    #       sudo apt-get update
+    #       sudo apt-get install -y yq
+
+      - name: Create or Update Feature Entity
+        run: |
+          # Extract the feature entity name and version from the YAML file dynamically
+          FEATURE_ENTITY_NAME=$(yq eval '.name' ${{ inputs.feature_entity_file }})
+          FEATURE_ENTITY_VERSION=$(yq eval '.version' ${{ inputs.feature_entity_file }})
+
+          echo "Feature entity name: $FEATURE_ENTITY_NAME"
+          echo "Feature entity version: $FEATURE_ENTITY_VERSION"
+
+          # Check if the feature entity exists
+          az ml feature-store-entity show --name $FEATURE_ENTITY_NAME --version $FEATURE_ENTITY_VERSION \
+            --feature-store-name ${{ inputs.featurestore_name }} \
+            --resource-group ${{ inputs.resource_group }} > /dev/null 2>&1
+          FEATURE_ENTITY_EXISTS=$?
+          echo "Feature entity existence check exit status: $FEATURE_ENTITY_EXISTS"
+
+          if [[ "$FEATURE_ENTITY_EXISTS" -ne 0 ]]; then
+            echo "Creating feature entity..."
+            az ml feature-store-entity create --file ${{ inputs.feature_entity_file }} \
+              --feature-store-name ${{ inputs.featurestore_name }} \
+              --resource-group ${{ inputs.resource_group }}
+          else
+            echo "Feature entity already exists, updating it..."
+            az ml feature-store-entity update \
+              --name $FEATURE_ENTITY_NAME \
+              --version $FEATURE_ENTITY_VERSION \
+              --feature-store-name ${{ inputs.featurestore_name }} \
+              --resource-group ${{ inputs.resource_group }} 
+          fi

@@ -1,0 +1,68 @@
+name: create-deployment
+
+on:
+  workflow_call:
+    inputs:
+      endpoint_file:
+        required: true
+        type: string
+      resource_group:
+        required: true
+        type: string
+      workspace_name:
+        required: true
+        type: string
+      endpoint_name:
+        required: true
+        type: string
+      endpoint_type:
+        required: true
+        type: string
+      deployment_name:
+        required: true
+        type: string
+      set_param:
+        required: false
+        type: string
+    secrets:
+      creds:
+        required: true
+jobs:
+  create-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: "Az CLI login"
+        uses: azure/login@v1
+        with:
+          creds: ${{secrets.creds}}
+          enable-AzPSSession: true
+      - name: Upgrade Azure CLI
+        run: |
+          az upgrade --yes
+      - name: Install ML extension 
+        run: |
+          # az extension add --upgrade --name ml -y
+          # sudo /opt/az/bin/python3 -m pip install azure-identity==1.17.1
+          az extension add --upgrade --name ml --version 2.30.0
+
+      # - name: Update ML extension with allow-preview
+      #   run: |
+      #     az extension update --name ml --allow-preview true
+      - name: create-deployment
+        run: |
+          DEPLOYMENT_EXISTS=$(az ml ${{ inputs.endpoint_type }}-deployment list --endpoint-name ${{ inputs.endpoint_name }} --workspace-name ${{ inputs.workspace_name }} -g ${{ inputs.resource_group }} -o tsv --query "[?name=='${{ inputs.deployment_name }}'][name]" | wc -l)
+
+          if [[ DEPLOYMENT_EXISTS -ne 1 ]]; then
+            az ml ${{ inputs.endpoint_type }}-deployment create --name ${{ inputs.deployment_name }} --endpoint-name ${{ inputs.endpoint_name }} \
+              --set ${{ inputs.set_param }} -f ${{ github.workspace }}/${{ inputs.endpoint_file }} \
+              --workspace-name ${{ inputs.workspace_name }} -g ${{ inputs.resource_group }}
+          else
+
+            echo "Deployment already exists! Updating..."
+          
+            az ml ${{ inputs.endpoint_type }}-deployment update --name ${{ inputs.deployment_name }} --endpoint-name ${{ inputs.endpoint_name }} \
+              --set ${{ inputs.set_param }} -f ${{ github.workspace }}/${{ inputs.endpoint_file }} \
+              --workspace-name ${{ inputs.workspace_name }} -g ${{ inputs.resource_group }}
+          fi

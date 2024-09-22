@@ -1,0 +1,33 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+parameters:
+- name: deployment_name
+  type: string
+- name: deployment_file
+  type: string
+- name: enable_monitoring
+  type: string
+  default: 'false'
+
+steps:
+  - task: AzureCLI@2
+    displayName: Create deployment
+    continueOnError: true
+    inputs: 
+      azureSubscription: $(ado_service_connection_rg) #needs to have access at the RG level 
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -o xtrace
+        DEPLOYMENT_EXISTS=$(az ml $(endpoint_type)-deployment list --endpoint-name $(endpoint_name) --workspace-name $(aml_workspace) -g $(resource_group) -o tsv --query "[?name=='${{ parameters.deployment_name }}'][name]" | wc -l)
+
+        if [[ DEPLOYMENT_EXISTS -ne 1 ]]; then
+          az ml $(endpoint_type)-deployment create --name ${{ parameters.deployment_name }} --endpoint-name $(endpoint_name) \
+            --set ${{ parameters.set_param }} -f ${{ parameters.deployment_file }} \
+            --workspace-name $(aml_workspace) -g $(resource_group)
+        else
+          az ml $(endpoint_type)-deployment update --name ${{ parameters.deployment_name }} --endpoint-name $(endpoint_name) \
+            --set ${{ parameters.set_param }} -f ${{ parameters.deployment_file }} \
+            --workspace-name $(aml_workspace) -g $(resource_group)
+        fi

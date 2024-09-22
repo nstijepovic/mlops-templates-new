@@ -1,0 +1,76 @@
+name: register-feature-set
+
+on:
+  workflow_call:
+    inputs:
+      featureset_file:
+        required: true
+        type: string
+      resource_group:
+        required: true
+        type: string
+      featurestore_name:
+        required: true
+        type: string
+      set_param:
+        required: false
+        type: string
+    secrets:
+      creds:
+        required: true
+
+jobs:
+  register-feature-set:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: "Az CLI login"
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.creds }}
+          enable-AzPSSession: true
+
+      - name: Upgrade Azure CLI
+        run: |
+          az upgrade --yes
+
+      - name: Install ML extension
+        run: |
+          az extension add --upgrade --name ml --version 2.30.0
+
+    #   - name: Install yq (YAML processor)
+    #     run: |
+    #       sudo apt-get update
+    #       sudo apt-get install -y yq
+
+      - name: Create or Update Feature Set
+        run: |
+          # Extract the feature set name and version from the YAML file dynamically
+          FEATURE_SET_NAME=$(yq eval '.name' ${{ inputs.featureset_file }})
+          FEATURE_SET_VERSION=$(yq eval '.version' ${{ inputs.featureset_file }})
+
+          echo "Feature set name: $FEATURE_SET_NAME"
+          echo "Feature set version: $FEATURE_SET_VERSION"
+
+          # Check if the feature set exists by showing its details
+          set +e  # Continue execution even if the show command fails
+          az ml feature-set show --name $FEATURE_SET_NAME --version $FEATURE_SET_VERSION \
+          --feature-store-name ${{ inputs.featurestore_name }} \
+          --resource-group ${{ inputs.resource_group }} > /dev/null 2>&1
+          FEATURE_SET_EXISTS=$?
+          echo "Feature set existence check exit status: $FEATURE_SET_EXISTS"
+          
+          if [[ "$FEATURE_SET_EXISTS" -ne 0 ]]; then
+            echo "Creating feature set..."
+            az ml feature-set create --file ${{ inputs.featureset_file }} \
+              --feature-store-name ${{ inputs.featurestore_name }} \
+              --resource-group ${{ inputs.resource_group }}
+          else
+            echo "Feature set already exists, updating it..."
+            az ml feature-set update --file ${{ inputs.featureset_file }} \
+              --feature-store-name ${{ inputs.featurestore_name }} \
+              --resource-group ${{ inputs.resource_group }}
+          fi

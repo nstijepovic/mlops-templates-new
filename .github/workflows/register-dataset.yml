@@ -1,0 +1,54 @@
+name: register-dataset
+
+on:
+  workflow_call:
+    inputs:
+      data_file:
+        required: true
+        type: string
+      resource_group:
+        required: true
+        type: string
+      workspace_name:
+        required: true
+        type: string
+      file_type:
+        required: false
+        type: string
+        default: ""
+      name:
+        required: true
+        type: string
+    secrets:
+      creds:
+        required: true
+jobs:
+  register-dataset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: "Az CLI login"
+        uses: azure/login@v1
+        with:
+          creds: ${{secrets.creds}}
+          enable-AzPSSession: true
+      - name: Upgrade Azure CLI
+        run: |
+          az upgrade --yes
+      - name: Install ML extension 
+        run: |
+          az extension add --upgrade --name ml --version 2.30.0
+          # az extension add --upgrade --name ml -y
+          # sudo /opt/az/bin/python3 -m pip install azure-identity==1.17.1
+
+      - name: create-dataset-from-file
+        if: ${{ inputs.file_type == ''}}
+        run: |
+          az ml data create --file ${{ github.workspace }}/${{ inputs.data_file }} --resource-group ${{ inputs.resource_group }} \
+          --workspace-name ${{ inputs.workspace_name }} --name ${{ inputs.name }}
+      - name: create-dataset-as-job
+        if: ${{ inputs.file_type != ''}}
+        run: |
+          az ml job create --file ${{ github.workspace }}/${{ inputs.data_file }} --resource-group ${{ inputs.resource_group }} \
+          --workspace-name ${{ inputs.workspace_name }}

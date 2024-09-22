@@ -1,0 +1,64 @@
+name: register-feature-store
+
+on:
+  workflow_call:
+    inputs:
+      featurestore_file:
+        required: true
+        type: string
+      resource_group:
+        required: true
+        type: string
+    secrets:
+      creds:
+        required: true
+
+jobs:
+  register-feature-store:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: "Az CLI login"
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.creds }}
+          enable-AzPSSession: true
+
+      - name: Upgrade Azure CLI
+        run: |
+          az upgrade --yes
+
+      - name: Install ML extension 
+        run: |
+          az extension add --upgrade --name ml --version 2.30.0
+
+    #   - name: Install yq (YAML processor)
+    #     run: |
+    #       sudo apt-get update
+    #       sudo apt-get install -y yq
+
+      - name: Create or Update Feature Store
+        run: |
+          # Extract the feature store name dynamically from the YAML file
+          FEATURE_STORE_NAME=$(yq eval '.name' ${{ inputs.featurestore_file }})
+
+          echo "Feature store name: $FEATURE_STORE_NAME"
+
+          # Check if the feature store already exists
+          FEATURE_STORE_EXISTS=$(az ml feature-store list --resource-group ${{ inputs.resource_group }} \
+            --query "[?name=='$FEATURE_STORE_NAME'] | length(@)")
+
+          echo "Feature store existence check exit status: $FEATURE_STORE_EXISTS"
+
+          if [[ "$FEATURE_STORE_EXISTS" -ne 0 ]]; then
+            echo "Creating feature store..."
+            az ml feature-store create --file ${{ inputs.featurestore_file }} \
+              --resource-group ${{ inputs.resource_group }}
+          else
+            echo "Feature store already exists, updating it..."
+            az ml feature-store update --file ${{ inputs.featurestore_file }} \
+              --resource-group ${{ inputs.resource_group }}
+          fi
