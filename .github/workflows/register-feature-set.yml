@@ -63,7 +63,7 @@ jobs:
           FEATURE_SET_EXISTS=$?
           echo "Feature set existence check exit status: $FEATURE_SET_EXISTS"
           
-          if [[ "$FEATURE_SET_EXISTS" -eq 0 ]]; then
+          if [[ "$FEATURE_SET_EXISTS" -ne 0 ]]; then
             echo "Creating feature set..."
             az ml feature-set create --file ${{ inputs.featureset_file }} \
               --feature-store-name ${{ inputs.featurestore_name }} \
