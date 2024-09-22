@@ -53,7 +53,7 @@ jobs:
 
           echo "Feature store existence check exit status: $FEATURE_STORE_EXISTS"
 
-          if [[ "$FEATURE_STORE_EXISTS" -ne 0 ]]; then
+          if [[ "$FEATURE_STORE_EXISTS" -eq 0 ]]; then
             echo "Creating feature store..."
             az ml feature-store create --file ${{ inputs.featurestore_file }} \
               --resource-group ${{ inputs.resource_group }}

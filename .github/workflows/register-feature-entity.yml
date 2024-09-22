@@ -59,7 +59,7 @@ jobs:
           FEATURE_ENTITY_EXISTS=$?
           echo "Feature entity existence check exit status: $FEATURE_ENTITY_EXISTS"
 
-          if [[ "$FEATURE_ENTITY_EXISTS" -ne 0 ]]; then
+          if [[ "$FEATURE_ENTITY_EXISTS" -eq 0 ]]; then
             echo "Creating feature entity..."
             az ml feature-store-entity create --file ${{ inputs.feature_entity_file }} \
               --feature-store-name ${{ inputs.featurestore_name }} \
