@@ -72,6 +72,7 @@ jobs:
             echo "Feature set already exists, updating it..."
             az ml feature-set update --file ${{ inputs.featureset_file }} \
               --feature-store-name ${{ inputs.featurestore_name }} \
+              --name $FEATURE_SET_NAME \
               --version $FEATURE_SET_VERSION \
               --resource-group ${{ inputs.resource_group }}
           fi
